@@ -1,0 +1,16 @@
+[package]
+name = "telegrambot"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "telegrambot"
+path = "src/lib.rs"
+
+[dependencies]
+sea-orm = { version = "0.10", features = [ "sqlx-sqlite", "runtime-tokio-rustls", "macros" ] }
+url = "2"
+teloxide = { version = "0.11", features = [ "macros", "auto-send" ] }
+
+entity = { path = "../entity" }

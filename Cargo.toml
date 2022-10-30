@@ -1,0 +1,29 @@
+[package]
+name = "no-future-bot"
+description = "Telegram Twitter Repost Bot"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+members = [".", "entity", "migration", "telegrambot"]
+
+[profile.release]
+strip = true
+lto = true
+
+[dependencies]
+serde = { version = "*", features = [ "derive" ] }
+serde_json = "*"
+reqwest = "*"
+clap = { version = "^3", features = [ "derive" ] }
+rocket = { version = "0.5.0-rc.2", features = [ "json" ] }
+sea-orm = { version = "0.10", features = [ "sqlx-sqlite", "runtime-tokio-rustls", "macros" ] }
+urlencoding = "2.1"
+itertools = "0.10"
+hmac = "0.12"
+sha2 = "0.10"
+
+migration = { path = "migration" }
+entity = { path = "entity" }
+telegrambot = { path = "telegrambot" }
