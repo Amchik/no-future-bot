@@ -8,8 +8,8 @@
 
 ```console
 $ cargo build
-$ cargo run -- -t "TELEGRAM_TOKEN" # or...
-$ TELEGRAM_TOKEN=$secret cargo run
+$ cargo run -- -t "TWITTER_TOKEN" -b "TELEGRAM_TOKEN" # or...
+$ TELEGRAM_TOKEN=$secret TWITTER_TOKEN=... cargo run
 ```
 
 ## Usage ##
@@ -47,6 +47,53 @@ interface User {
 <td>
 
 ```ts
+interface Author {
+  id: int, // internal
+  platform_id: int // twitter
+  name: string,
+  username: string,
+  avatar_url: string | null
+}
+```
+</td>
+<td>
+
+```ts
+interface Post {
+  id: int, // internal
+  platform_id: int // twitter
+  author_id: int, // internal
+  text: string,
+  source_url: string,
+  source_text: string
+}
+```
+</td>
+</tr>
+<tr>
+<td>
+
+```ts
+interface PostMedia {
+  id: int,
+  post_id: int, // internal
+  media_type: "photo" | "video",
+  media_url: string
+}
+```
+</td>
+<td>
+
+```ts
+interface PostData {
+  post: Post,
+  media: PostMedia[]
+}
+```
+</td>
+<td>
+
+```ts
 interface ChannelData {
   // Integer or string that
   // starts with '@'
@@ -60,8 +107,22 @@ interface ChannelData {
 ### User endpoints ###
 File: [`src/routes/user.rs`](src/routes/user.rs).
 
-| Method | Path       | Description              | Body Type   | Return Type |
-|--------|------------|--------------------------|-------------|-------------|
-| GET    | `/user`    | Returns self user object |             | User        |
-| POST   | `/user`    | Link channel             | ChannelData | User        |
-| DELETE | `/user`    | Delete self account      |             | Nothing     |
+| Method | Path       | Description              | Body Type     | Return Type |
+|--------|------------|--------------------------|---------------|-------------|
+| GET    | `/user`    | Returns self user object |               | `User`      |
+| POST   | `/user`    | Link channel             | `ChannelData` | `User`      |
+| DELETE | `/user`    | Delete self account      |               | Nothing     |
+
+### Author endpoints ###
+File: [`src/routes/author.rs`](src/routes/author.rs).
+
+- `:id` has type `string` if it username, positive `int` if it platform id
+  or negative `int` if it internal id.
+
+| Method | Path                | Description               | Return Type  |
+|--------|---------------------|---------------------------|--------------|
+| GET    | `/author/:id`       | Get author object         | `Author`     |
+| PUT    | `/author/:id`       | Create (or update) author | `Author`     |
+| GET*   | `/author/:id/posts` | Returns self user object  | `PostData[]` |
+
+\* `:id` cannot be internal id
