@@ -6,8 +6,11 @@ use rocket::tokio::select;
 use sea_orm::Database;
 use telegrambot::{start_bot, teloxide::Bot};
 
+use crate::{models::twitterclient::TwitterClient, workers::twitter::start_twitter_collector};
+
 mod models;
 mod routes;
+mod workers;
 
 #[derive(Parser)]
 #[clap(version, about, long_about = None)]
@@ -20,9 +23,13 @@ struct Args {
     /// Run migrations and exit
     migrate_only: bool,
 
-    #[clap(short, long)]
+    #[clap(short = 'b', long)]
     /// Telegram bot token
-    token: Option<String>,
+    telegram_token: Option<String>,
+
+    #[clap(short, long)]
+    /// Twitter bearer token
+    twitter_token: Option<String>,
 }
 
 #[rocket::main]
@@ -44,9 +51,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Database::connect(format!("sqlite://{}", args.sqlite)).await?;
     Migrator::up(&db, None).await?;
 
-    let bot = Bot::new(args.token.unwrap_or_else(|| {
+    let bot = Bot::new(args.telegram_token.unwrap_or_else(|| {
         std::env::var("TELEGRAM_TOKEN").unwrap_or_else(|_| {
-            eprintln!("Please set $TELEGRAM_TOKEN env var, or provide it using --token key.");
+            eprintln!(
+                "Please set $TELEGRAM_TOKEN env var, or provide it using --telegram-token key."
+            );
+
+            exit(1)
+        })
+    }));
+
+    let twitter = TwitterClient::new(args.twitter_token.unwrap_or_else(|| {
+        std::env::var("TWITTER_TOKEN").unwrap_or_else(|_| {
+            eprintln!(
+                "Please set $TWITTER_TOKEN env var, or provide it using --twitter-token key."
+            );
 
             exit(1)
         })
@@ -64,15 +83,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .manage(db.clone())
         .manage(bot.clone())
+        .manage(twitter.clone())
         .register("/", routes::catchers::catchers())
         .mount("/user", routes::user::routes())
+        .mount("/author", routes::author::routes())
         .launch();
 
-    let telegram_bot = start_bot(bot, db);
+    let telegram_bot = start_bot(bot, db.clone());
+
+    let twitter_worker = start_twitter_collector(&db, &twitter);
 
     select! {
         res = rocket => { let _ = res.unwrap(); },
         () = telegram_bot => (),
+        () = twitter_worker => (),
     };
 
     Ok(())

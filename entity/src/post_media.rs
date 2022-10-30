@@ -6,10 +6,10 @@ use serde::Serialize;
 pub struct Model {
     #[sea_orm(primary_key)]
     /// Internal ID of post media
-    pub id: u64,
+    pub id: i64,
     #[sea_orm(unique)]
     /// Internal ID of post
-    pub post_id: u64,
+    pub post_id: i64,
 
     /// Media type (photo or video)
     pub media_type: MediaType,
@@ -28,6 +28,19 @@ pub enum MediaType {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::post::Entity",
+        from = "Column::PostId",
+        to = "super::post::Column::Id"
+    )]
+    Post,
+}
+
+impl Related<super::post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Post.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
