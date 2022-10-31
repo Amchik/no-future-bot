@@ -122,7 +122,7 @@ File: [`src/routes/author.rs`](src/routes/author.rs).
 | Method | Path                | Description               | Return Type  |
 |--------|---------------------|---------------------------|--------------|
 | GET    | `/author/:id`       | Get author object         | `Author`     |
-| PUT    | `/author/:id`       | Create (or update) author | `Author`     |
-| GET*   | `/author/:id/posts` | Returns self user object  | `PostData[]` |
+| PUT*   | `/author/:id`       | Create (or update) author | `Author`     |
+| GET    | `/author/:id/posts` | Returns self user object  | `PostData[]` |
 
 \* `:id` cannot be internal id
