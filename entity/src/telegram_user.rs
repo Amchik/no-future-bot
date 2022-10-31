@@ -24,6 +24,23 @@ pub const POWER_MOD: i32 = 50;
 pub const POWER_ADMIN: i32 = 100;
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub enum Relation {
+    #[sea_orm(has_many = "super::scheduled_post::Entity")]
+    Posts,
+    #[sea_orm(has_many = "super::follow::Entity")]
+    Follows,
+}
+
+impl Related<super::scheduled_post::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Posts.def()
+    }
+}
+
+impl Related<super::follow::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Follows.def()
+    }
+}
 
 impl ActiveModelBehavior for ActiveModel {}
