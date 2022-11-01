@@ -14,6 +14,7 @@ use crate::models::{
 
 pub fn routes() -> Vec<Route> {
     routes![
+        get_authors,
         get_by_platform_id,
         get_by_username,
         put_by_platform_id,
@@ -27,6 +28,16 @@ pub fn routes() -> Vec<Route> {
 struct PostData {
     post: entity::post::Model,
     media: Vec<entity::post_media::Model>,
+}
+
+#[get("/")]
+async fn get_authors(db: &State<DatabaseConnection>) -> APIResponse {
+    let authors = entity::author::Entity::find()
+        .all(db.deref())
+        .await
+        .unwrap();
+
+    APIResponse::new(authors)
 }
 
 #[get("/<id>")]
