@@ -87,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .register("/", routes::catchers::catchers())
         .mount("/user", routes::user::routes())
         .mount("/author", routes::author::routes())
+        .mount("/feed", routes::feed::routes())
         .launch();
 
     let telegram_bot = start_bot(bot, db.clone());
