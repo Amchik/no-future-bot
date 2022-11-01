@@ -102,6 +102,41 @@ interface ChannelData {
 ```
 </td>
 </tr>
+<tr>
+<td>
+
+```ts
+interface FeedElement {
+  post: Post,
+  media: PostMedia[],
+  author: Author
+}
+```
+</td>
+<td>
+
+```ts
+// One of FeedRead, FeedSubscribe
+// and FeedUnsubscribe 
+interface FeedUpdateData {}
+interface FeedRead : FeedUpdateData {
+  readUnder: int
+}
+```
+</td>
+<td>
+
+```ts
+interface FeedSubscribe : FeedUpdateData {
+  subscribe: string // see ':id' in
+}                   // author endpoints
+interface FeedUnsubscribe : FeedUpdateData {
+  unsubscribe: string
+}
+```
+</td>
+
+</tr>
 </table>
 
 ### User endpoints ###
@@ -121,8 +156,16 @@ File: [`src/routes/author.rs`](src/routes/author.rs).
 
 | Method | Path                | Description               | Return Type  |
 |--------|---------------------|---------------------------|--------------|
+| GET    | `/author`           | Get all known authors     | `Author[]`   |
 | GET    | `/author/:id`       | Get author object         | `Author`     |
 | PUT*   | `/author/:id`       | Create (or update) author | `Author`     |
 | GET    | `/author/:id/posts` | Returns self user object  | `PostData[]` |
 
-\* `:id` cannot be internal id
+\* `:id` cannot be internal id here
+
+### Feed endpoints ###
+File: [`src/routes/feed.rs`](src/routes/feed.rs).
+| Method | Path       | Description                         | Body Type        | Return Type     |
+|--------|------------|-------------------------------------|------------------|-----------------|
+| GET    | `/feed`    | Returns feed                        |                  | `FeedElement[]` |
+| PATCH  | `/feed`    | Modify ([un]subscribe, read) feed   | `FeedUpdateData` | Nothing         |
