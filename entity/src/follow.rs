@@ -2,7 +2,7 @@ use sea_orm::entity::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Serialize, Debug, DeriveEntityModel)]
-#[sea_orm(table_name = "schedule_posts")]
+#[sea_orm(table_name = "follows")]
 pub struct Model {
     #[sea_orm(primary_key)]
     /// ID of user

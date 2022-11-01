@@ -54,14 +54,17 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(entity::follow::Column::AuthorId)
                             .integer()
-                            .primary_key()
                             .not_null(),
                     )
                     .col(
                         ColumnDef::new(entity::follow::Column::UserId)
                             .integer()
-                            .primary_key()
                             .not_null(),
+                    )
+                    .primary_key(
+                        Index::create()
+                            .col(entity::follow::Column::AuthorId)
+                            .col(entity::follow::Column::UserId),
                     )
                     .to_owned(),
             )
