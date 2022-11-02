@@ -1,16 +1,23 @@
 use crate::models::{response::APIResponse, telegramauth::TelegramUser};
 
-use migration::OnConflict;
-use rocket::{get, patch, routes, serde::json::Json, Route, State};
+use itertools::Itertools;
+use migration::{Condition, OnConflict};
+use rocket::{delete, get, patch, put, routes, serde::json::Json, Route, State};
 use sea_orm::{
-    ActiveModelBehavior, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect,
-    Set,
+    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait,
+    ModelTrait, QueryFilter, QuerySelect, Set,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 pub fn routes() -> Vec<Route> {
-    routes![get_feed, patch_feed]
+    routes![
+        get_feed,
+        patch_feed,
+        get_scheduled_feed,
+        create_scheduled_post,
+        delete_scheduled_post
+    ]
 }
 
 #[derive(Serialize)]
@@ -20,12 +27,26 @@ struct FeedElement<'a> {
     author: &'a entity::author::Model,
 }
 
+#[derive(Serialize)]
+struct ScheduledFeedElement {
+    post: entity::scheduled_post::Model,
+    media: Vec<entity::post_media::Model>,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum FeedUpdateData<'a> {
     Subscribe(&'a str),
     Unsubscribe(&'a str),
     ReadUnder(i64),
+}
+
+#[derive(Deserialize)]
+struct CreateScheduledPost {
+    post_id: i64,
+    post_text: Option<String>,
+    #[serde(default)]
+    exclude_media: Vec<i64>,
 }
 
 #[get("/")]
@@ -138,5 +159,121 @@ async fn patch_feed(
         APIResponse::NoContent
     } else {
         APIResponse::error(400, "Invalid operation")
+    }
+}
+
+#[get("/scheduled")]
+async fn get_scheduled_feed(
+    db: &State<DatabaseConnection>,
+    telegram_user: TelegramUser,
+) -> APIResponse {
+    let raw_posts = entity::scheduled_post::Entity::find()
+        .filter(entity::scheduled_post::Column::UserId.eq(telegram_user.id))
+        .all(db.deref())
+        .await
+        .unwrap();
+
+    let mut posts = vec![];
+
+    for post in raw_posts {
+        let media_ids = post
+            .media_ids
+            .split(',')
+            .flat_map(|f| f.parse::<i64>())
+            .collect::<Vec<_>>();
+
+        // NOTE: this code performs too many requests to db. May use
+        // twitter-way (posts: Vec<_>, media: Vec<_>) or combine it later?
+        // TODO:
+        let media = if media_ids.is_empty() {
+            vec![]
+        } else {
+            let mut conditions = Condition::any();
+            for media in media_ids {
+                conditions = conditions.add(entity::post_media::Column::Id.eq(media));
+            }
+
+            entity::post_media::Entity::find()
+                .filter(conditions)
+                .all(db.deref())
+                .await
+                .unwrap()
+        };
+
+        posts.push(ScheduledFeedElement { post, media });
+    }
+
+    APIResponse::new(posts)
+}
+
+#[put("/scheduled", data = "<data>")]
+async fn create_scheduled_post(
+    db: &State<DatabaseConnection>,
+    telegram_user: TelegramUser,
+    data: Json<CreateScheduledPost>,
+) -> APIResponse {
+    if data.0.exclude_media.len() > 8 {
+        return APIResponse::error(422, "Excluded media too long");
+    }
+
+    let post = entity::post::Entity::find_by_id(data.post_id)
+        .one(db.deref())
+        .await
+        .unwrap();
+    let post = match post {
+        Some(p) => p,
+        _ => return APIResponse::error(404, "Post does not exists"),
+    };
+
+    let media_ids = {
+        let mut cond = Condition::all();
+        for media in data.0.exclude_media {
+            cond = cond.add(entity::post_media::Column::Id.ne(media));
+        }
+
+        post.find_related(entity::post_media::Entity)
+            .filter(cond)
+            .all(db.deref())
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|f| f.id)
+            .join(",")
+    };
+
+    let post_text = data.0.post_text.unwrap_or(post.text);
+
+    let active = entity::scheduled_post::ActiveModel {
+        user_id: Set(telegram_user.id),
+        media_ids: Set(media_ids),
+        post_text: Set(post_text),
+        post_source: Set(post.source_text),
+        post_source_url: Set(post.source_url),
+        ..Default::default()
+    };
+
+    let model = active.insert(db.deref()).await.unwrap();
+
+    APIResponse::new(model)
+}
+
+#[delete("/scheduled/<id>")]
+async fn delete_scheduled_post(
+    db: &State<DatabaseConnection>,
+    telegram_user: TelegramUser,
+    id: u64,
+) -> APIResponse {
+    let id = id as i64;
+
+    let result = entity::scheduled_post::Entity::delete_by_id(id)
+        .filter(entity::scheduled_post::Column::UserId.eq(telegram_user.id))
+        .exec(db.deref())
+        .await
+        .unwrap();
+
+    if result.rows_affected != 0 {
+        APIResponse::NoContent
+    } else {
+        APIResponse::error(404, "Post does not exists")
     }
 }
