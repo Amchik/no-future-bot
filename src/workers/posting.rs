@@ -79,18 +79,23 @@ pub async fn start_posting_worker(db: &DatabaseConnection, bot: &Bot) {
                     })
                     .collect::<Vec<_>>();
 
-                if let Some(el) = media.get_mut(0) {
-                    match el {
-                        InputMedia::Photo(e) => {
-                            e.caption = Some(text);
-                            e.parse_mode = Some(ParseMode::Html);
-                        }
-                        InputMedia::Video(e) => {
-                            e.caption = Some(text);
-                            e.parse_mode = Some(ParseMode::Html);
-                        }
-                        _ => unreachable!(),
-                    };
+                // little trolling, but
+                // <@nanoqsh> Зато DRY :molodec:
+                if let Some(
+                    InputMedia::Photo(InputMediaPhoto {
+                        caption,
+                        parse_mode,
+                        ..
+                    })
+                    | InputMedia::Video(InputMediaVideo {
+                        caption,
+                        parse_mode,
+                        ..
+                    }),
+                ) = media.get_mut(0)
+                {
+                    *caption = Some(text);
+                    *parse_mode = Some(ParseMode::Html);
                 }
 
                 bot.send_media_group(chat_id, media).await.err()
