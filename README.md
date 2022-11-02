@@ -7,10 +7,13 @@
 ## Building and running ##
 
 ```console
-$ cargo build
+$ export WEBAPP_URL=https://...
+$ cargo build [--release]
 $ cargo run -- -t "TWITTER_TOKEN" -b "TELEGRAM_TOKEN" # or...
 $ TELEGRAM_TOKEN=$secret TWITTER_TOKEN=... cargo run
 ```
+
+`dotenv` budget version protip: `while read n; do eval export "$n"; done < .env`
 
 ## Usage ##
 Create telegram bot via [@BotFather](https://t.me/botfather),

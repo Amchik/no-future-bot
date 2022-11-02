@@ -45,14 +45,21 @@ async fn commands_handler(
 
         match cmd {
             Command::Start => {
-                bot.send_message(msg.chat.id, Command::descriptions().to_string())
-                    .reply_markup(ReplyMarkup::inline_kb([[InlineKeyboardButton::web_app(
-                        "Open WebApp",
-                        WebAppInfo {
-                            url: Url::parse("https://webapp.ceheki.org/undefined.html").unwrap(),
-                        },
-                    )]]))
-                    .await?;
+                let webapp_url: Option<&'static str> = option_env!("WEBAPP_URL");
+
+                let mut req = bot.send_message(msg.chat.id, Command::descriptions().to_string());
+                if let Some(webapp_url) = webapp_url {
+                    req = req.reply_markup(ReplyMarkup::inline_kb([[
+                        InlineKeyboardButton::web_app(
+                            "Open WebApp",
+                            WebAppInfo {
+                                url: Url::parse(webapp_url).unwrap(),
+                            },
+                        ),
+                    ]]));
+                }
+
+                req.await?;
             }
             Command::PurgeAdmins => {
                 let model = entity::telegram_user::Entity::find_by_id(user.id.0 as i64)
