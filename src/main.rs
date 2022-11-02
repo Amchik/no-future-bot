@@ -6,7 +6,10 @@ use rocket::tokio::select;
 use sea_orm::Database;
 use telegrambot::{start_bot, teloxide::Bot};
 
-use crate::{models::twitterclient::TwitterClient, workers::twitter::start_twitter_collector};
+use crate::{
+    models::twitterclient::TwitterClient,
+    workers::{posting::start_posting_worker, twitter::start_twitter_collector},
+};
 
 mod models;
 mod routes;
@@ -90,14 +93,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .mount("/feed", routes::feed::routes())
         .launch();
 
-    let telegram_bot = start_bot(bot, db.clone());
+    let telegram_bot = start_bot(bot.clone(), db.clone());
 
     let twitter_worker = start_twitter_collector(&db, &twitter);
+
+    let telegram_worker = start_posting_worker(&db, &bot);
 
     select! {
         res = rocket => { let _ = res.unwrap(); },
         () = telegram_bot => (),
         () = twitter_worker => (),
+        () = telegram_worker => (),
     };
 
     Ok(())
