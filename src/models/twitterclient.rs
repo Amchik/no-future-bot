@@ -94,6 +94,8 @@ mod json_structs {
     #[derive(Deserialize)]
     pub struct TwitterTimelineMediaVariants {
         pub bitrate: Option<u32>,
+        #[serde(default)]
+        pub content_type: String,
         pub url: String,
     }
 }
@@ -258,6 +260,7 @@ impl TwitterClient {
                                 .as_ref()
                                 .unwrap()
                                 .iter()
+                                .filter(|v| v.content_type == "video/mp4")
                                 .max_by_key(|v| v.bitrate)
                                 .expect("api doesn't returned normal video")
                                 .url
