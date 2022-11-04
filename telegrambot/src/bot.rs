@@ -6,6 +6,8 @@ use teloxide::{
 };
 use url::Url;
 
+use crate::commands;
+
 pub async fn start_bot(bot: Bot, db: DatabaseConnection) {
     let handler = Update::filter_message()
         .filter_command::<Command>()
@@ -27,6 +29,8 @@ pub async fn start_bot(bot: Bot, db: DatabaseConnection) {
 enum Command {
     #[command(description = "show this message.")]
     Start,
+    #[command(description = "link telegram channel")]
+    LinkChannel { id_or_username: String },
     #[command(description = "purges all administrators of channel, except you.")]
     PurgeAdmins,
 }
@@ -60,6 +64,24 @@ async fn commands_handler(
                 }
 
                 req.await?;
+            }
+            Command::LinkChannel { id_or_username } => {
+                if id_or_username.is_empty() {
+                    bot.send_message(msg.chat.id, "Usage: /linkchannel <id or channel @username>")
+                        .await?;
+
+                    return Ok(());
+                }
+
+                let user =
+                    commands::link_channel(user.id.0 as i64, &id_or_username, &bot, &db).await;
+
+                let msg = match user {
+                    Ok(_) => bot.send_message(msg.chat.id, "Channel successefully linked!"),
+                    Err(e) => bot.send_message(msg.chat.id, format!("Unable to link channel: {e}")),
+                };
+
+                msg.await?;
             }
             Command::PurgeAdmins => {
                 let model = entity::telegram_user::Entity::find_by_id(user.id.0 as i64)
