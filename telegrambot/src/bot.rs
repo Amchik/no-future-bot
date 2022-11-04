@@ -13,6 +13,8 @@ pub async fn start_bot(bot: Bot, db: DatabaseConnection) {
         .filter_command::<Command>()
         .endpoint(commands_handler);
 
+    bot.set_my_commands(Command::bot_commands()).await.unwrap();
+
     Dispatcher::builder(bot, handler)
         .dependencies(dptree::deps![db])
         .enable_ctrlc_handler()
@@ -27,11 +29,13 @@ pub async fn start_bot(bot: Bot, db: DatabaseConnection) {
     description = "🌧 Hello! These commands are supported:"
 )]
 enum Command {
-    #[command(description = "show this message.")]
+    #[command(description = "off")]
     Start,
+    #[command(description = "show help message")]
+    Help,
     #[command(description = "link telegram channel")]
     LinkChannel { id_or_username: String },
-    #[command(description = "purges all administrators of channel, except you.")]
+    #[command(description = "purges all administrators of channel, except you")]
     PurgeAdmins,
 }
 
@@ -48,7 +52,7 @@ async fn commands_handler(
         };
 
         match cmd {
-            Command::Start => {
+            Command::Start | Command::Help => {
                 let webapp_url: Option<&'static str> = option_env!("WEBAPP_URL");
 
                 let mut req = bot.send_message(msg.chat.id, Command::descriptions().to_string());
