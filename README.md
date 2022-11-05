@@ -178,11 +178,12 @@ interface ScheduledFeedElement {
 ### User endpoints ###
 File: [`src/routes/user.rs`](src/routes/user.rs).
 
-| Method | Path       | Description              | Body Type     | Return Type |
-|--------|------------|--------------------------|---------------|-------------|
-| GET    | `/user`    | Returns self user object |               | `User`      |
-| POST   | `/user`    | Link channel             | `ChannelData` | `User`      |
-| DELETE | `/user`    | Delete self account      |               | Nothing     |
+| Method | Path              | Description               | Body Type     | Return Type |
+|--------|-------------------|---------------------------|---------------|-------------|
+| GET    | `/user`           | Returns self user object  |               | `User`      |
+| POST   | `/user`           | Link channel              | `ChannelData` | `User`      |
+| DELETE | `/user`           | Delete self account       |               | Nothing     |
+| GET    | `/user/following` | Returns following authors |               | `Author[]`  |
 
 ### Author endpoints ###
 File: [`src/routes/author.rs`](src/routes/author.rs).

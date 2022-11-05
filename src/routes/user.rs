@@ -1,14 +1,17 @@
 use std::ops::Deref;
 
 use rocket::{delete, get, post, routes, serde::json::Json, Route, State};
-use sea_orm::{ActiveModelBehavior, ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
+use sea_orm::{
+    ActiveModelBehavior, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait,
+    QueryFilter, Set,
+};
 use serde::Deserialize;
 use telegrambot::teloxide::prelude::*;
 
 use crate::models::{response::APIResponse, telegramauth::TelegramUser};
 
 pub fn routes() -> Vec<Route> {
-    routes![get_self, modify_channel, delete_self]
+    routes![get_self, modify_channel, delete_self, get_following_authors]
 }
 
 #[derive(Deserialize)]
@@ -66,4 +69,22 @@ async fn delete_self(db: &State<DatabaseConnection>, telegram_user: TelegramUser
     } else {
         APIResponse::NoContent
     }
+}
+
+#[get("/following")]
+async fn get_following_authors(
+    db: &State<DatabaseConnection>,
+    telegram_user: TelegramUser,
+) -> APIResponse {
+    let authors = entity::follow::Entity::find()
+        .filter(entity::follow::Column::UserId.eq(telegram_user.id))
+        .find_also_related(entity::author::Entity)
+        .all(db.deref())
+        .await
+        .unwrap()
+        .into_iter()
+        .flat_map(|f| f.1)
+        .collect::<Vec<_>>();
+
+    APIResponse::new(authors)
 }
