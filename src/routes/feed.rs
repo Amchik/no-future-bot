@@ -144,7 +144,7 @@ async fn patch_feed(
     if let FeedUpdateData::ReadUnder(id) = data.0 {
         let mut active = entity::telegram_user::ActiveModel::new();
         active.id = Set(telegram_user.id);
-        active.last_feed_id = Set(id);
+        active.last_feed_id = Set(id + 1); // idk but without this it doesn't works
 
         entity::telegram_user::Entity::insert(active)
             .on_conflict(
