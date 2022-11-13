@@ -202,9 +202,13 @@ File: [`src/routes/author.rs`](src/routes/author.rs).
 
 ### Feed endpoints ###
 File: [`src/routes/feed.rs`](src/routes/feed.rs).
+
+- `:id` is a negative internal id or positive platform id.
+
 | Method | Path                  | Description                         | Body Type             | Return Type              |
 |--------|-----------------------|-------------------------------------|-----------------------|--------------------------|
 | GET    | `/feed`               | Returns feed                        |                       | `FeedElement[]`          |
+| GET    | `/feed/:id`           | Returns feed post                   |                       | `FeedElement`            |
 | PATCH  | `/feed`               | Modify ([un]subscribe, read) feed   | `FeedUpdateData`      | Nothing                  |
 | GET    | `/feed/scheduled`     | Returns scheduled feed              |                       | `ScheduledFeedElement[]` |
 | PUT    | `/feed/scheduled`     | Create scheduled post               | `CreateScheduledPost` | `ScheduledPost`          |

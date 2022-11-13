@@ -13,6 +13,7 @@ use std::ops::Deref;
 pub fn routes() -> Vec<Route> {
     routes![
         get_feed,
+        get_feed_post,
         patch_feed,
         get_scheduled_feed,
         create_scheduled_post,
@@ -93,6 +94,45 @@ async fn get_feed(db: &State<DatabaseConnection>, telegram_user: TelegramUser) -
     new_posts.sort_by_key(|f| f.post.platform_id);
 
     APIResponse::new(new_posts)
+}
+
+#[get("/<id>")]
+async fn get_feed_post(
+    id: i64,
+    _telegram_user: TelegramUser,
+    db: &State<DatabaseConnection>,
+) -> APIResponse {
+    let expr = if id < 0 {
+        entity::post::Entity::find_by_id(-id)
+    } else {
+        entity::post::Entity::find().filter(entity::post::Column::PlatformId.eq(id))
+    };
+
+    let res = expr
+        .find_with_related(entity::post_media::Entity)
+        .all(db.deref())
+        .await
+        .unwrap();
+
+    let Some((post, media)) = res.into_iter().next() else {
+        return APIResponse::error(404, "Post does not exists");
+    };
+
+    let author = post
+        .find_related(entity::author::Entity)
+        .one(db.deref())
+        .await
+        .unwrap();
+
+    let Some(author) = author else {
+        return APIResponse::error(404, "Post does not exists");
+    };
+
+    APIResponse::new(FeedElement {
+        post,
+        media,
+        author: &author,
+    })
 }
 
 #[patch("/", data = "<data>")]
