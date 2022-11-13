@@ -82,7 +82,10 @@ async fn get_feed(db: &State<DatabaseConnection>, telegram_user: TelegramUser) -
             .await
             .unwrap();
 
-        for (post, media) in posts {
+        for (post, media) in posts
+            .into_iter()
+            .filter(|f| f.0.platform_id > user.last_feed_id)
+        {
             new_posts.push(FeedElement {
                 post,
                 media,
@@ -144,7 +147,7 @@ async fn patch_feed(
     if let FeedUpdateData::ReadUnder(id) = data.0 {
         let mut active = entity::telegram_user::ActiveModel::new();
         active.id = Set(telegram_user.id);
-        active.last_feed_id = Set(id + 1); // idk but without this it doesn't works
+        active.last_feed_id = Set(id);
 
         entity::telegram_user::Entity::insert(active)
             .on_conflict(
