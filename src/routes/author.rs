@@ -1,4 +1,5 @@
 use entity::telegram_user::POWER_MOD;
+use itertools::Itertools;
 use migration::OnConflict;
 use rocket::{get, put, routes, Route, State};
 use sea_orm::{
@@ -199,6 +200,7 @@ async fn get_posts_by_platform_id(
         .unwrap()
         .into_iter()
         .map(|(post, media)| PostData { post, media })
+        .sorted_by_key(|f| f.post.platform_id)
         .collect::<Vec<PostData>>();
 
     APIResponse::new(posts)
@@ -229,6 +231,7 @@ async fn get_posts_by_username(
         .unwrap()
         .into_iter()
         .map(|(post, media)| PostData { post, media })
+        .sorted_by_key(|f| f.post.platform_id)
         .collect::<Vec<PostData>>();
 
     APIResponse::new(posts)

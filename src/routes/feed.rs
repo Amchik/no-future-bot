@@ -75,7 +75,7 @@ async fn get_feed(db: &State<DatabaseConnection>, telegram_user: TelegramUser) -
     for author in follows.iter().flat_map(|v| &v.1) {
         let posts = entity::post::Entity::find()
             .filter(entity::post::Column::AuthorId.eq(author.id))
-            .filter(entity::post::Column::Id.gt(user.last_feed_id))
+            .filter(entity::post::Column::PlatformId.gt(user.last_feed_id))
             .find_with_related(entity::post_media::Entity)
             .limit(50)
             .all(db.deref())
